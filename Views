@@ -1,0 +1,380 @@
+---- VIEWS! ---- 
+Create Secure View View_Fact_ProductSalesTarget
+As
+Select
+DimProductID,
+DimTargetDateID
+from FACT_PRODUCTSALESTARGET;
+
+Create Secure View View_Fact_SRCSalesTarget
+As
+Select
+    DimStoreID,
+    DimResellerID,
+    DimChannelID,
+    DimTargetDateID,
+    SalesTargetAmount
+from FACT_SRCSALESTARGET;
+
+Create Secure View View_Fact_SalesActual
+As
+Select
+    DimProductID,
+    DimStoreID,
+    DimResellerID,
+    DimCustomerID,
+    DimChannelID,
+    DimSaleDateID,
+    DimLocationID,
+    SalesHeaderID,
+    SalesDetailID,
+    SaleAmount,
+    SaleQuantity,
+    SaleUnitPrice,
+    SaleExtendedCost,
+    SaleTotalProfit
+from FACT_SALESACTUAL;
+
+Create Secure View View_Dim_Product
+As
+Select
+    ProductID,
+    ProductTypeID,
+    ProductCategoryID,
+    ProductName,
+    ProductType,
+    ProductCategory,
+    ProductRetailPrice,
+    ProductWholesalePrice,
+    ProductCost,
+    ProductRetailProfit, 
+    ProductWholesaleUnitProfit,
+    ProductProfitMarginUnitPercent
+From DIM_PRODUCT;
+
+Create Secure View View_Dim_Date
+As
+Select
+    DATE_PKEY,				
+	DATE,					
+	FULL_DATE_DESC,		
+	DAY_NUM_IN_WEEK,			
+	DAY_NUM_IN_MONTH,		
+	DAY_NUM_IN_YEAR,		
+	DAY_NAME,				
+	DAY_ABBREV,				
+	WEEKDAY_IND,				
+	US_HOLIDAY_IND,		
+	_HOLIDAY_IND,
+	MONTH_END_IND,	
+	WEEK_BEGIN_DATE_NKEY,
+	WEEK_BEGIN_DATE,
+	WEEK_END_DATE_NKEY,
+	WEEK_END_DATE,	
+	WEEK_NUM_IN_YEAR,	
+	MONTH_NAME,			
+	MONTH_ABBREV,			
+	MONTH_NUM_IN_YEAR,		
+	YEARMONTH,				
+	QUARTER,					
+	YEARQUARTER,				
+	YEAR,					
+	FISCAL_WEEK_NUM,		
+	FISCAL_MONTH_NUM,		
+	FISCAL_YEARMONTH,		
+	FISCAL_QUARTER,		
+	FISCAL_YEARQUARTER,		
+	FISCAL_HALFYEAR,
+	FISCAL_YEAR,	
+	SQL_TIMESTAMP,			
+	CURRENT_ROW_IND,		
+	EFFECTIVE_DATE,	
+	EXPIRATION_DATE
+From DIM_DATE;
+
+Create Secure View View_Dim_Store
+As
+Select
+    DimStoreID,
+    DimLocationID,
+    SourceStoreID,
+    StoreName,
+    StoreNumber,
+    StoreManager
+From dim_store;
+
+Create Secure View View_Dim_Reseller
+As
+Select
+    DimResellerID,
+    DimLocationID,
+    ResellerID,
+    ResellerName,
+    ContactName,
+    PhoneNumber,
+    Email
+From dim_reseller;
+
+Create Secure View View_Dim_Customer 
+As
+Select
+    DimCustomerID,
+    DimLocationID,
+    CustomerID,
+    CustomerFullName,
+    CustomerFirstName,
+    CustomerLastName,
+    CustomerGender
+from dim_customer;
+
+Create Secure View View_Dim_Channel
+As
+Select
+    DimChannelID,
+    ChannelID,
+    ChannelCategoryID,
+    ChannelName,
+    ChannelCategory
+from dim_channel;
+
+Create Secure View View_Dim_Location
+As
+Select
+    DimLocationID,
+    Address,
+    City,
+    PostalCode,
+    State_Province,
+    Country
+from dim_location;
+
+-- Question 1: Give an overall assessment of stores number 5 and 8’s sales. How are they performing compared to target? Will they meet their 2014 target? Should either store be closed? Why or why not?What should be done in the next year to maximize store profits? --
+
+-- View 1: 2013 & 2014 sales targets
+CREATE OR REPLACE SECURE VIEW SalesTargets
+    AS
+    SELECT DISTINCT
+        Dim_Store.StoreNumber
+        ,Dim_Date.Year
+        ,Fact_SRCSalesTarget.SalesTargetAmount AS Target
+    FROM Dim_Store
+    INNER JOIN Fact_SRCSalesTarget ON
+    Fact_SRCSalesTarget.DimStoreID = Dim_Store.DimStoreID
+    INNER JOIN Dim_Date ON
+    Dim_Date.Date_Pkey = Fact_SRCSalesTarget.DimTargetDateID
+    GROUP BY Dim_Date.Year, Dim_Store.StoreNumber, Fact_SRCSalesTarget.SalesTargetAmount
+    ORDER BY Dim_Store.StoreNumber, Dim_Date.Year
+    
+-- View 2: 2013 & 2014 sales actuals
+CREATE OR REPLACE SECURE VIEW SalesActuals
+    AS
+    SELECT DISTINCT
+        Dim_Store.StoreNumber
+        ,Dim_Date.Year
+        ,Sum(Fact_SaleSActual.SaleAmount) as SalesActual
+    FROM FACT_SALESACTUAL
+    INNER JOIN Dim_Store ON
+    Fact_SalesActual.DimStoreID = Dim_Store.DimStoreID
+    INNER JOIN Dim_Date ON
+    Dim_Date.Date_Pkey = Fact_SalesActual.DimSaleDateID
+    GROUP BY Dim_Store.StoreNumber,Dim_Date.Year
+    ORDER BY Dim_Store.StoreNumber, Dim_Date.Year
+
+-- View 3: All product type sales for all the stores
+Create or replace secure view ProductTypeSales as 
+Select Distinct
+    Dim_Store.StoreNumber,
+    Dim_Product.ProductType,
+    Dim_Date.Year,
+    Sum(FACT_salesactual.SaleAmount) as SalesActual
+    From fact_salesactual
+    Inner Join dim_store on
+    fact_salesactual.dimstoreid = dim_store.dimstoreID
+    Inner Join dim_product on
+    fact_salesactual.dimproductid = dim_product.dimproductid
+    inner join dim_date on 
+    dim_date.date_pkey = fact_salesactual.dimsaledateid
+    group by dim_store.storenumber, dim_product.producttype, dim_date.year
+    order by dim_store.storenumber, dim_product.producttype, dim_date.year
+
+ -- View 4: 2013, 2014 product target sales - mens casual only
+ Create or replace secure view MensCasualProductTargetSales as 
+ Select Distinct 
+    dim_product.producttype,
+    dim_date.year,
+    fact_productsalestarget.producttargetsalesquantity as targetquantity
+    from dim_product
+    inner join fact_productsalestarget on
+    fact_productsalestarget.dimproductID = dim_product.dimproductid
+    inner join dim_date on
+    dim_date.date_pkey = fact_productsalestarget.dimtargetdateid
+    where dim_product.producttype like '%Men%Casual%'
+    
+-- View 5: 2013, 2014 product target sales - womens casual only
+Create or replace secure view WomensCasualProductTargetSales as
+SELECT DISTINCT
+    Dim_Product.ProductType,
+    Dim_Date.Year,
+    Fact_ProductSalesTarget.ProductTargetSalesQuantity AS TargetQuantity
+    FROM Dim_Product
+    INNER JOIN Fact_ProductSalesTarget ON
+    Fact_ProductSalesTarget.DimProductID = Dim_Product.DimProductID
+    INNER JOIN Dim_Date ON
+    Dim_Date.Date_Pkey = Fact_ProductSalesTarget.DimTargetDateID
+    WHERE Dim_Product.ProductType LIKE '%Women%Casual%'
+
+-- View 6: 2013 and 14 product actual sales: men's casual
+Create or replace secure view MensCasualProductActualSales as
+Select
+    Dim_Store.StoreNumber,
+    Dim_Product.ProductType,
+    Dim_Date.Year,
+    Sum(FACT_SALESACTUAL.SALEAMOUNT) as ActualSales
+From FACT_SALESACTUAL
+inner join dim_store on 
+fact_salesactual.dimstoreid = dim_store.dimstoreid
+inner join dim_product on
+fact_salesactual.dimproductid = dim_product.dimproductid
+inner join dim_date on
+fact_salesactual.dimsaledateid = dim_date.date_pkey
+where dim_product.producttype like '%Men%Casual%'
+group by dim_store.storenumber, dim_product.producttype, dim_date.year;
+
+-- View 7: 2013 and 2014 product actual sales: women's casual
+create or replace secure view WomensCasualProductActualSales as
+Select
+    Dim_Store.StoreNumber,
+    Dim_Product.ProductType,
+    Dim_Date.Year,
+    Sum(FACT_SALESACTUAL.SALEAMOUNT) as ActualSales
+From FACT_SALESACTUAL
+inner join dim_store on 
+fact_salesactual.dimstoreid = dim_store.dimstoreid
+inner join dim_product on
+fact_salesactual.dimproductid = dim_product.dimproductid
+inner join dim_date on
+fact_salesactual.dimsaledateid = dim_date.date_pkey
+where dim_product.producttype like '%Women%Casual%'
+group by dim_store.storenumber, dim_product.producttype, dim_date.year;
+
+--view 8: day of week product sales
+create or replace secure view weeklyproductsales as 
+select distinct
+    dim_store.storenumber,
+    dim_date.day_name as day,
+    sum(fact_salesactual.saleamount) as weeklyproductsales
+    from fact_salesactual
+    inner join dim_store on
+    dim_store.dimstoreid = fact_salesactual.dimstoreid
+    inner join dim_date on
+    dim_date.date_pkey = fact_salesactual.dimsaledateid
+    group by dim_store.storenumber, day
+
+
+
+-- view 11: Product category by day:
+CREATE OR REPLACE SECURE VIEW DayofWeekProductCategorySales
+    AS
+    SELECT DISTINCT
+            Dim_Store.StoreNumber
+            ,Dim_Product.ProductCategory
+            ,Dim_Date.Day_Abbrev as day
+            ,SUM(Fact_SalesActual.SaleAmount) AS ProductWeekSales
+        FROM Fact_SalesActual
+        INNER JOIN Dim_Store ON
+        Fact_SalesActual.DimStoreID = Dim_Store.DimStoreID
+        INNER JOIN Dim_Date ON
+        Fact_SalesActual.DimSaleDateID = Dim_Date.Date_Pkey
+        INNER JOIN Dim_Product ON
+        Fact_SalesActual.DimProductID = Dim_Product.DimProductID
+        WHERE (Dim_Store.StoreNumber = 5 OR Dim_Store.StoreNumber = 8)
+        AND DIM_STORE.STORENUMBER <> 'Unknown'
+        GROUP BY Dim_Store.StoreNumber, Dim_Product.ProductCategory, day
+        ORDER BY ProductWeekSales DESC
+
+-- View 12 Daily sales: 
+CREATE OR REPLACE SECURE VIEW DailySales
+    AS
+    SELECT DISTINCT
+        Dim_Store.StoreNumber
+        ,Dim_Date.Date_Pkey 
+        ,Dim_Date.Year as year
+        ,SUM(Fact_SalesActual.SaleAmount) AS SalesActual
+    FROM Fact_SalesActual
+    INNER JOIN Dim_Date
+    ON Fact_SalesActual.DimSaleDateID = Dim_Date.Date_Pkey
+    INNER JOIN Dim_Store ON
+    Fact_SalesActual.DimStoreID = Dim_Store.DimStoreID
+    WHERE (Dim_Store.StoreNumber = 5 OR Dim_Store.StoreNumber = 8)
+    AND DIM_STORE.STORENUMBER <> 'Unknown'
+    GROUP BY Dim_Store.StoreNumber, Dim_Date.Date_Pkey, year
+    ORDER BY Dim_Store.StoreNumber, Dim_Date.Date_Pkey
+
+-- View 13 daily target:
+CREATE OR REPLACE SECURE VIEW DailyTarget
+    AS
+    SELECT DISTINCT
+        Dim_Store.StoreNumber
+        ,Dim_Date.Date_Pkey
+        ,Dim_Date.Year as year
+        ,ROUND(Fact_SRCSalesTarget.SalesTargetAmount /365) AS DailyTarget
+    FROM Fact_SRCSalesTarget
+    INNER JOIN Dim_Date
+    ON Fact_SRCSalesTarget.DimTargetDateID = Dim_Date.Date_Pkey
+    INNER JOIN Dim_Store
+    ON Fact_SRCSalesTarget.DimStoreID = Dim_Store.DimStoreID
+    WHERE (Dim_Store.StoreNumber IN (5,8))
+    AND DIM_STORE.STORENUMBER <> 'Unknown'
+    ORDER BY Dim_Store.StoreNumber, Dim_Date.Date_Pkey
+
+CREATE OR REPLACE SECURE VIEW BONUS_RECOMMENDATION
+AS
+SELECT DISTINCT
+    YEAR, 
+    STORENUMBER,
+    PRODUCTTYPE,
+    SALE, PROFIT,
+    SUM(SALE) OVER (PARTITION BY YEAR) AS TOTAL_SALE,
+    (SALE/TOTAL_SALE) AS PROPORTION,
+ROUND
+(
+CASE WHEN YEAR = 2013 THEN 500000*(SALE/TOTAL_SALE)
+    WHEN YEAR = 2014 THEN 400000*(SALE/TOTAL_SALE)
+END,2) AS BONUS_PROPOTION
+FROM
+(
+SELECT DISTINCT 
+    Dim_Date.Year, 
+    Dim_Store.STORENUMBER,
+    Dim_Product.ProductType,
+    SUM(Fact_SalesActual.SALEAMOUNT) AS SALE, 
+    SUM(FAct_SalesActual.SALETOTALPROFIT) AS PROFIT
+FROM FACT_SALESACTUAL 
+INNER JOIN DIM_STORE ON FACT_SALESACTUAL.DIMSTOREID = DIM_STORE.DIMSTOREID
+INNER JOIN DIM_PRODUCT ON FACT_SALESACTUAL.DIMPRODUCTID = DIM_PRODUCT.DIMPRODUCTID
+INNER JOIN DIM_DATE ON FACT_SALESACTUAL.DIMSALEDATEID = DIM_DATE.DATE_PKEY
+WHERE DIM_PRODUCT.PRODUCTTYPE LIKE '%Casual' AND DIM_STORE.STORENUMBER IN (5,8)
+AND DIM_DATE.YEAR||DIM_DATE.MONTH_NUM_IN_YEAR NOT IN (201411, 201412)
+AND dim_store.storenumber <> 'Unknown'
+GROUP BY DIM_DATE.Year, DIM_STORE.STORENUMBER, DIM_PRODUCT.PRODUCTTYPE
+)
+ORDER BY YEAR, STORENUMBER;
+
+create or replace secure view weeklyproductsalestarget
+as 
+select distinct
+    Dim_Store.StoreNumber,
+    Dim_Location.STATE_PROVINCE AS State,
+    dim_location.city as city,
+    Dim_Location.PostalCode AS ZipCode,
+    Dim_Date.Year as year,
+    Fact_SRCSalesTarget.SalesTargetAmount AS TargetSales
+    FROM Dim_Store
+    INNER JOIN Dim_Location ON
+    Dim_Store.DimLocationID = Dim_Location.DimLocationID
+    INNER JOIN Fact_SRCSalesTarget ON
+    Fact_SRCSalesTarget.DimStoreID = Dim_Store.DimStoreID
+    INNER JOIN Dim_Date ON
+    Dim_Date.Date_Pkey = Fact_SRCSalesTarget.DimTargetDateID
+    GROUP BY Dim_Store.StoreNumber,city, State, ZipCode, Year, TargetSales
+    ORDER BY Dim_Store.StoreNumber, city, State, ZipCode, Year, TargetSales
