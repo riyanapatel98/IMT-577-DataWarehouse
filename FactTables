@@ -1,0 +1,119 @@
+------------ FACT TABLES --------------------------
+Create Table Fact_ProductSalesTarget
+(
+    DimProductID INT CONSTRAINT FK_ProductID FOREIGN KEY REFERENCES Dim_Product(DimProductID) --Foreign Key
+,DimTargetDateID number(9)CONSTRAINT FK_DimTargetDateID FOREIGN KEY REFERENCES DIM_DATE(DATE_PKEY),
+ProductTargetSalesQuantity int
+);
+
+Insert into FACT_PRODUCTSALESTARGET
+(
+DimProductID,
+DimTargetDateID,
+ProductTargetSalesQuantity
+)
+Select Distinct
+Dim_Product.DimProductID as DimProductID,
+Dim_Date.Date_PKEY,
+TARGETDATA_PRODUCT.SalesQuantityTarget as ProductTargetSalesQuantity
+
+From TARGETDATA_PRODUCT
+Inner Join Dim_Product on Dim_Product.DIMPRODUCTID = TARGETDATA_PRODUCT.ProductID
+Left Outer Join Dim_Date on Dim_Date.YEAR = TARGETDATA_PRODUCT.TARGETYEAR;
+
+select * from Fact_ProductSalesTarget;
+
+-----------------------------
+
+Create Table Fact_SRCSalesTarget
+(
+DimStoreID INT Constraint FK_DimStoreID FOREIGN KEY REFERENCES DIM_Store(DimStoreID),
+DimResellerID Int Constraint FK_DimResellerID Foreign Key References DIM_Reseller(DimResellerID),
+DimChannelID Int Constraint FK_DimChannelID Foreign Key References DIM_Channel(DimChannelID),
+DimTargetDateID number(9) Constraint FK_DimTargetDateID Foreign Key References Dim_Date(Date_Pkey),
+SalesTargetAmount int 
+);
+INSERT INTO Fact_SRCSalesTarget
+	(
+		DimStoreID 
+	   ,DimResellerID 
+       ,DimChannelID 
+       ,DimTargetDateID
+       ,SalesTargetAmount 
+	)
+	SELECT   
+		  NVL(DIM_STORE.DIMSTOREID, -1) as DimStoreID
+		 ,NVL(DIM_RESELLER.DIMRESELLERID, -1) as DimResellerID
+         ,NVL(DIM_CHANNEL.DIMCHANNELID, -1) as DimChannelID
+         ,DIM_DATE.DATE_PKEY
+         ,TARGETDATA_CHANNEL_RESELLER.targetsalesamount
+	FROM TARGETDATA_CHANNEL_RESELLER
+	LEFT JOIN DIM_STORE ON DIM_STORE.StoreName = TARGETDATA_CHANNEL_RESELLER.TARGETNAME
+    LEFT JOIN DIM_RESELLER ON DIM_RESELLER.ResellerName = TARGETDATA_CHANNEL_RESELLER.TARGETNAME
+    LEFT JOIN DIM_CHANNEL ON DIM_CHANNEL.ChannelName = TARGETDATA_CHANNEL_RESELLER.TARGETNAME
+    LEFT JOIN DIM_DATE ON DIM_DATE.YEAR = TARGETDATA_CHANNEL_RESELLER.YEAR
+Select * from fact_srcsalestarget;
+--------------------------------------
+Create or replace Table Fact_SalesActual
+(
+DimProductID INT Constraint FK_ProductID FOREIGN KEY REFERENCES Dim_Product(DimProductID),
+DimStoreID INT Constraint FK_DimStoreID FOREIGN KEY REFERENCES DIM_Store(DimStoreID),
+DimResellerID Int Constraint FK_DimResellerID Foreign Key References DIM_Reseller(DimResellerID),
+DimCustomerID Int Constraint FK_DimCustomerID Foreign Key References DIM_Customer(DimCustomerID),
+DimChannelID Int Constraint FK_DimChannelID Foreign Key References DIM_Channel(DimChannelID),
+DimSaleDateID number(9)CONSTRAINT FK_DimSaleDateID FOREIGN KEY REFERENCES DIM_DATE(DATE_PKEY),
+DimLocationID Int Constraint FK_DimLocationID FOREIGN KEY REFERENCES Dim_Location(DimLocationID),
+SalesHeaderID int,
+SalesDetailID int,
+SaleAmount float,
+SaleQuantity int,
+SaleUnitPrice float,
+SaleExtendedCost float, 
+SaleTotalProfit float
+);
+truncate table fact_Salesactual;
+drop table fact_salesactual;
+INSERT INTO Fact_SalesActual
+	(
+	DimProductID
+    ,DimStoreID 
+	,DimResellerID 
+    ,DimCustomerID 
+    ,DimChannelID 
+    ,DimSaleDateID
+    ,DimLocationID 
+    ,SalesHeaderID 
+    ,SalesDetailID 
+    ,SaleAmount 
+    ,SaleQuantity 
+    ,SaleUnitPrice 
+    ,SaleExtendedCost 
+    ,SaleTotalProfit
+	)
+	SELECT DISTINCT 
+        DIM_PRODUCT.DimProductID
+		,NVL(DIM_STORE.DIMSTOREID, -1) as DimStoreID
+		,NVL(DIM_RESELLER.DIMRESELLERID, -1) as DimResellerID
+        ,NVL(DIM_CUSTOMER.DimCustomerID,-1) as DimCustomerID
+        ,NVL(DIM_CHANNEL.DIMCHANNELID, -1) as DimChannelID
+        ,DIM_DATE.DATE_PKEY
+        ,NVL(DIM_LOCATION.DIMLOCATIONID, -1) as DimLocationID
+        ,SALESDETAIL.SALESHEADERID
+        ,SALESDETAIL.SALESDETAILID
+        ,SALESDETAIL.SALESAMOUNT
+        ,SALESDETAIL.SALESQUANTITY
+        ,SALESDETAIL.SALESAMOUNT/SALESDETAIL.SALESQUANTITY AS SALEUNITPRICE,
+            DIM_PRODUCT.PRODUCTCOST * SALESDETAIL.SALESQUANTITY AS SaleExtendedCost,
+            (SALESDETAIL.SALESAMOUNT - (SALESDETAIL.SALESQUANTITY * DIM_PRODUCT.PRODUCTCOST)) AS SALETOTALPROFIT
+        FROM DIM_PRODUCT
+        INNER JOIN SALESDETAIL ON SALESDETAIL.PRODUCTID = DIM_PRODUCT.PRODUCTID
+        INNER JOIN SALESHEADER ON SALESHEADER.SALESHEADERID = SALESDETAIL.SALESHEADERID
+        LEFT JOIN DIM_STORE ON SALESHEADER.STOREID = DIM_STORE.SOURCESTOREID
+        INNER JOIN DIM_CHANNEL ON SALESHEADER.CHANNELID = DIM_CHANNEL.CHANNELID
+        LEFT JOIN DIM_RESELLER ON SALESHEADER.RESELLERID = DIM_RESELLER.RESELLERID
+        LEFT JOIN DIM_CUSTOMER ON SALESHEADER.CUSTOMERID = DIM_CUSTOMER.CUSTOMERID
+        INNER JOIN dim_date on salesheader.salesheaderdate = dim_date.date
+        LEFT JOIN DIM_LOCATION ON DIM_STORE.DIMLOCATIONID = DIM_LOCATION.DIMLOCATIONID
+;
+       
+select * from fact_salesactual;
