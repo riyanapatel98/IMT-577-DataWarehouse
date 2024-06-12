@@ -1,0 +1,197 @@
+--- Set up Staging environment and Staging Tables ---
+
+CREATE OR REPLACE DATABASE IMT577_DW_RIYANA_PATEL_STAGE;
+
+CREATE OR REPLACE WAREHOUSE "IMT577_DW_RIYANA_PATEL_STAGE" WITH WAREHOUSE_SIZE = 'XSMALL' AUTO_SUSPEND = 600 AUTO_RESUME = TRUE COMMENT = '';
+
+CREATE OR REPLACE FILE FORMAT CSV_SKIP_HEADER
+type = 'CSV'
+field_delimiter = ','
+FIELD_OPTIONALLY_ENCLOSED_BY = '"'
+skip_header = 1;
+
+CREATE OR REPLACE FILE FORMAT CSV_SKIP_HEADER_DATE
+type = 'CSV'
+field_delimiter = ','
+FIELD_OPTIONALLY_ENCLOSED_BY = '"'
+skip_header = 1
+date_format = 'MM/DD/YYYY';
+
+CREATE OR REPLACE FILE FORMAT CSV_SKIP_HEADER_TIME_DATE
+type = 'CSV'
+field_delimiter = ','
+FIELD_OPTIONALLY_ENCLOSED_BY = '"'
+skip_header = 1
+date_format = 'MM/DD/YY HH:MI:SS';
+
+CREATE OR REPLACE TABLE SALESDETAIL(
+    SALESDETAILID NUMBER,
+    SALESHEADERID NUMBER,
+    PRODUCTID NUMBER,
+    SALESQUANTITY NUMBER,
+    SALESAMOUNT NUMBER,
+    CREATEDDATE VARCHAR(255),
+    CREATEDBY VARCHAR(255),
+    ModifiedDate VARCHAR(255),
+    ModifiedBy VARCHAR(255)
+    );
+
+CREATE OR REPLACE TABLE STORE(
+    STOREID NUMBER,
+    SUBSEGMENTID NUMBER,
+    STORENUMBER NUMBER,
+    STOREMANAGER VARCHAR(255),
+    ADDRESS VARCHAR(255),
+    CITY VARCHAR(255),
+    STATEPROVINCE VARCHAR(255),
+    COUNTRY VARCHAR(255),
+    POSTALCODE VARCHAR(255),
+    PHONENUMBER VARCHAR(255),
+    CREATEDDATE VARCHAR(255),
+    CREATEDBY VARCHAR(255),
+    MODIFIEDDATE VARCHAR(255),
+    MODIFIEDBY VARCHAR(255)
+    );
+CREATE OR REPLACE TABLE PRODUCT(
+    PRODUCTID NUMBER,
+    PRODUCTTYPEID NUMBER,
+    PRODUCT VARCHAR(255),
+    COLOR VARCHAR(255),
+    STYLE VARCHAR(255),
+    UNITOFMEASUREID NUMBER,
+    WEIGHT FLOAT,
+    PRICE FLOAT,
+    COST FLOAT,
+    CREATEDDATE VARCHAR(255),
+    CREATEDBY VARCHAR(255),
+    MODIFIEDDATE VARCHAR(255),
+    MODIFIEDBY VARCHAR(255),
+    WHOLESALEPRICE FLOAT
+);
+
+create or replace table SubSegment (
+    SubSegmentID number,
+    SegmentID VARCHAR(255),
+    SubSegment VARCHAR(255),
+    CreatedDate VARCHAR(255),
+    CreatedBy VARCHAR(255),
+    ModifiedDate VARCHAR(255),
+    ModifiedBy VARCHAR(255)
+);
+
+create or replace table Segment(
+    SegmentID number,
+    Segment VARCHAR(255),
+    CreatedDate VARCHAR(255),
+    CreatedBy VARCHAR(255),
+    ModifiedDate VARCHAR(255),
+    ModifiedBy VARCHAR(255)
+);
+
+create or replace table Customer(
+    CustomerID VARCHAR(255),
+    SubSegmentID number,
+    FirstName VARCHAR(255),
+    LastName VARCHAR(255),
+    Gender VARCHAR(255),
+    EmailAddress VARCHAR(255),
+    Address VARCHAR(255),
+    City VARCHAR(255),
+    StateProvince VARCHAR(255),
+    Country VARCHAR(255),
+    PostalCode VARCHAR(255),
+    PhoneNumber VARCHAR(255),
+    CreatedDate VARCHAR(255),
+    CreatedBy VARCHAR(255),
+    ModifiedDate VARCHAR(255),
+    ModifiedBy VARCHAR(255)
+);
+
+create or replace table SalesHeader(
+    SalesHeaderID number,
+    SalesHeaderDate date,
+    ChannelID number,
+    StoreID number,
+    CustomerID VARCHAR(255),
+    ResellerID VARCHAR(255),
+    CreatedDate VARCHAR(255),
+    CreatedBy VARCHAR(255),
+    ModifiedDate VARCHAR(255),
+    ModifiedBy VARCHAR(255)
+);
+
+create or replace table Channel(
+    ChannelID number,
+    ChannelCategoryID number,
+    Channel VARCHAR(255),
+    CreatedDate VARCHAR(255),
+    CreatedBy VARCHAR(255),
+    ModifiedDate VARCHAR(255),
+    ModifiedBy VARCHAR(255)
+);
+
+create or replace table ChannelCategory(
+    ChannelCategoryID number,
+    ChannelCategory VARCHAR(255),
+    CreatedDate VARCHAR(255),
+    CreatedBy VARCHAR(255),
+    ModifiedDate VARCHAR(255),
+    ModifiedBy VARCHAR(255)
+);
+
+create or replace table UnitofMeasure(
+    UnitofMeasureID number,
+    UnitofMeasure VARCHAR(255),
+    CreatedDate VARCHAR(255),
+    CreatedBy VARCHAR(255),
+    ModifiedDate VARCHAR(255),
+    ModifiedBy VARCHAR(255)
+);
+
+create or replace table ProductType(
+    ProductTypeID number,
+    ProductCategoryID number,
+    ProductType VARCHAR(255),
+    CreatedDate VARCHAR(255),
+    CreatedBy VARCHAR(255),
+    ModifiedDate VARCHAR(255),
+    ModifiedBy VARCHAR(255)
+);
+
+create or replace table ProductCategory(
+    ProductCategoryID number,
+    ProductCategory VARCHAR(255),
+    CreatedDate VARCHAR(255),
+    CreatedBy VARCHAR(255),
+    ModifiedDate VARCHAR(255),
+    ModifiedBy VARCHAR(255)
+);
+CREATE OR REPLACE TABLE TARGETDATA_PRODUCT (
+    PRODUCTID INTEGER,
+    PRODUCT VARCHAR(255),
+    TARGETYEAR number(5),
+    SALESQUANTITYTARGET NUMBER
+);
+create or replace table TargetData_Channel_Reseller(
+    Year VARCHAR(255),
+    ChannelName VARCHAR(255),
+    TargetName VARCHAR(255),
+    TargetSalesAmount Number
+);
+
+create or replace table Reseller(
+    ResellerID VARCHAR(255),
+    Contact VARCHAR(255),
+    EmailAddress VARCHAR(255),
+    Address VARCHAR(255),
+    City VARCHAR(255),
+    StateProvince VARCHAR(255),
+    Country VARCHAR(255),
+    PostalCode VARCHAR(255),
+    PhoneNumber VARCHAR(255),
+    CreatedDate VARCHAR(255),
+    CreatedBy VARCHAR(255),
+    ModifiedDate VARCHAR(255),
+    ModifiedBy VARCHAR(255),
+    ResellerName VARCHAR(255)
+);
